@@ -2,23 +2,67 @@ import numpy as np
 from problem import Problem
 
 class Agent:
-    def __init__(self):
-        return
+    def __init__(self, problem: Problem, population_size=50, max_generations=200, initial_mutation_rate=0.1,
+                 tournament_size=5, sharing_radius=0.1, replacement_count=2):
+        self.problem = problem
+        self.population_size = population_size
+        self.max_generations = max_generations
+        self.mutation_rate = initial_mutation_rate
+        self.tournament_size = tournament_size
+        self.sharing_radius = sharing_radius
+        self.replacement_count = replacement_count
+        self.population = []
+        self.best_fitness_history = []
+        self.diversity_history = []
 
     def initialize_population(self):
-        return
+        self.population = [self.problem.generate_random_solution() for _ in range(self.population_size)]
 
     def run_evolution(self):
+        self.initialize_population()
+        for generation in range(self.max_generations):
+            raw_fitness = [self.problem.evaluate_fitness(individual) for individual in self.population]
+
+            shared_fitness = self._fitness_sharing(raw_fitness)
+
+            best_raw_fitness = np.max(raw_fitness)
+            self.best_fitness_history.append(best_raw_fitness)
+            current_diversity = self.problem.calculate_diversity(self.population)
+            self.diversity_history.append(current_diversity)
+
+            # adaptive mutation - advanced mechanism
+            if generation > 0 and current_diversity < np.mean(self.diversity_history[-5]):
+                self.mutation_rate *= 1.1
+            else:
+                self.mutation_rate = max(self.initial_mutation_rate, self.mutation_rate *0.95)
+
+            new_offspring = []
+            for _ in range(self.replacement_count):
+                ## tournament selection & creation of parents
+
+                ## crossover
+                offspring = self.problem.crossover(parent1, parent2)
+                ## mutation
+                if np.random.rand() < self.mutation_rate:
+                    offspring = self.problem.mutate(offspring)
+                new_offspring.append(offspring)
+
+            ## steady state replacement - advanced mechanism
+            self._steady_state_replacement(new_offspring, raw_fitness)
+        return self.population
+
+    def _fitness_sharing(self, raw_fitness):
         return
 
-    def _fitness_sharing(self):
+    def _tournament_selection(self, shared_fitness):
         return
 
-    def _tournament_selection(self):
-        return
-
-    def _steady_state_replacement(self):
-        return
+    def _steady_state_replacement(self, new_offspring, raw_fitness):
+        worst_indices = np.argsort(raw_fitness)[:self.replacement_count]
+        for i, idx in enumerate(worst_indices):
+            self.population[idx] = new_offspring[i]
 
     def get_best_solution(self):
-        return
+        raw_fitnesses = [self.problem.evaluate_fitness(individual) for individual in self.population]
+        best_index = np.argmax(raw_fitnesses)
+        return self.population[best_index], raw_fitnesses[best_index]
