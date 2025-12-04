@@ -1,6 +1,5 @@
-import numpy as np
 from abc import ABC, abstractmethod
-from helper_functions import calculate_distance_matrix
+from helper_functions import *
 
 
 class Problem(ABC):
@@ -51,11 +50,10 @@ class TSPProblem(Problem):
         # sum tour length (wrap-around)
         distance = 0.0
         for i in range(self.num_cities):
-            a = int(individual[i])
-            b = int(individual[(i + 1) % self.num_cities])
-            distance += self.distance_matrix[a, b]
-        # maximize fitness -> smaller distance => larger fitness
-        return 1.0 / (distance + 1e-8)
+            initial_city = individual[i]
+            last_city = individual[(i + 1) % self.num_cities]
+            distance += self.distance_matrix[initial_city][last_city]
+        return 1.0 / distance
 
     def crossover(self, parent1, parent2):
         """
@@ -63,45 +61,26 @@ class TSPProblem(Problem):
         parent1/parent2 are permutations (numpy arrays)
         """
         size = len(parent1)
-        if size < 2:
-            return parent1.copy()
-
         offspring = np.full(size, -1, dtype=int)
         start, end = sorted(np.random.choice(size, 2, replace=False))
-        # make the slice inclusive of end
-        offspring[start:end + 1] = parent1[start:end + 1]
-
-        # mapping from parent2 -> parent1 within the cut
-        mapping = {int(parent2[i]): int(parent1[i]) for i in range(start, end + 1)}
-
+        offspring[start:end] = parent1[start:end]
+        mapping = {parent2[i]: parent1[i] for i in range(start, end + 1)}
         for i in range(size):
             if offspring[i] == -1:
-                gene = int(parent2[i])
-                # resolve mapping cycles
+                gene = parent2[i]
                 while gene in mapping:
                     gene = mapping[gene]
                 offspring[i] = gene
         return offspring
 
     def mutate(self, individual):
-        mutated = np.copy(individual)
-        if self.num_cities < 2:
-            return mutated
-        i, j = np.random.choice(self.num_cities, 2, replace=False)
-        mutated[i], mutated[j] = mutated[j], mutated[i]
-        return mutated
+        mutated_individual = np.copy(individual)
+        idx1, idx2 = np.random.choice(self.num_cities, 2, replace=False)
+        mutated_individual[idx1], mutated_individual[idx2] = mutated_individual[idx2], mutated_individual[idx1]
+        return mutated_individual
 
-    def solution_distance(self, ind1, ind2):
-        """
-        Edge-overlap distance: fraction of differing directed edges.
-        Returns value in [0,1] where 0 = identical edges, 1 = no shared edges.
-        """
-        # construct directed edges as tuples (a,b)
-        n = self.num_cities
-        edges1 = {(int(ind1[i]), int(ind1[(i + 1) % n])) for i in range(n)}
-        edges2 = {(int(ind2[i]), int(ind2[(i + 1) % n])) for i in range(n)}
-        shared = len(edges1 & edges2)
-        return 1.0 - (shared / n)
+    def solution_distance(self, individual1, individual2):
+        return calculate_solution_distance_tsp(individual1, individual2)
 
 
 class GCPProblem(Problem):

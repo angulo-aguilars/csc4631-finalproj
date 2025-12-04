@@ -40,22 +40,19 @@ def calculate_solution_distance_tsp(individual1, individual2):
     Returns number of differing edges.
     """
     num_cities = len(individual1)
-
+    diff_count = 0
     edges1 = set()
     for i in range(num_cities):
-        a = int(individual1[i])
-        b = int(individual1[(i + 1) % num_cities])
-        edges1.add(tuple(sorted((a, b))))
+        city_a = individual1[i]
+        city_b = individual1[(i + 1) % num_cities]
+        edges1.add(tuple(sorted((city_a, city_b))))
 
-    diff_count = 0
     for i in range(num_cities):
-        a = int(individual2[i])
-        b = int(individual2[(i + 1) % num_cities])
-        if tuple(sorted((a, b))) not in edges1:
+        city_a = individual2[i]
+        city_b = individual2[(i + 1) % num_cities]
+        if tuple(sorted((city_a, city_b))) not in edges1:
             diff_count += 1
-
-    # normalized distance in [0,1]
-    return diff_count / num_cities
+    return diff_count
 
 
 # GRAPH COLORING HELPERS
