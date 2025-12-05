@@ -7,10 +7,10 @@ from agent import Agent
 from problem import TSPProblem
 from control import tsp_astar
 
-POP_SIZE = 50
+POP_SIZE = 100
 MAX_GEN = 500
-NUM_CITIES_TSP = 20
-SHARING_RADIUS = NUM_CITIES_TSP * 0.4
+NUM_CITIES_TSP = 15
+SHARING_RADIUS = 0.2
 RESULTS_DIR = "tsp_results"
 
 

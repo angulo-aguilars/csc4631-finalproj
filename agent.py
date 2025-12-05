@@ -32,7 +32,6 @@ class Agent:
         self.initialize_population()
 
         for generation in range(self.max_generations):
-            print(f"[GA] Generation {generation} ...", end="\r")
             raw_fitness = np.array([
                 self.problem.evaluate_fitness(ind)
                 for ind in self.population
@@ -48,10 +47,10 @@ class Agent:
 
             #Adaptive mutation
             if generation > 5:
-                recent_div = np.mean(self.diversity_history[-10:])
+                recent_div = np.mean(self.diversity_history[-5:])
 
                 if current_diversity < recent_div:
-                    self.mutation_rate = min(0.5, self.mutation_rate * 1.1)
+                    self.mutation_rate = min(0.3, self.mutation_rate * 1.1)
                 else:
                     self.mutation_rate = max(
                         self.initial_mutation_rate,
@@ -77,28 +76,16 @@ class Agent:
 
     def _fitness_sharing(self, raw_fitness):
         shared_fitness = np.copy(raw_fitness)
-        n = len(self.population)
 
-        SAMPLE_SIZE_K = min(10, n - 1)
-
-        for i in range(n):
-            neighbor_indices = np.random.choice(
-                [j for j in range(n) if j != i],
-                SAMPLE_SIZE_K,
-                replace=False
-            )
-
-            sharing_factor_sum = 0
-
-            for j in neighbor_indices:
-                dist = self.problem.solution_distance(
-                    self.population[i],
-                    self.population[j]
-                )
-
-                if dist < self.sharing_radius:
-                    sharing_factor_sum += (1 - dist / self.sharing_radius)
-            shared_fitness[i] /= (1 + sharing_factor_sum)
+        for i in range(len(self.population)):
+            for j in range(len(self.population)):
+                if i != j:
+                    dist = self.problem.solution_distance(
+                        self.population[i],
+                        self.population[j]
+                    )
+                    if dist < self.sharing_radius:
+                        shared_fitness[i] /= (1 + (1 - dist / self.sharing_radius))
 
         return shared_fitness
 
