@@ -47,40 +47,88 @@ class TSPProblem(Problem):
         return np.random.permutation(self.num_cities)
 
     def evaluate_fitness(self, individual):
+        # Ensure it's a valid permutation (no duplicates/missing cities)
+        if len(set(individual)) != self.num_cities:
+            # Assign a heavy penalty (very low fitness value)
+            return 1.0 / 10000000.0
+
         # sum tour length (wrap-around)
         distance = 0.0
         for i in range(self.num_cities):
             initial_city = individual[i]
             last_city = individual[(i + 1) % self.num_cities]
             distance += self.distance_matrix[initial_city][last_city]
+
+        # Prevent division by zero/near-zero
+        if distance < 1e-8:
+            return 1.0 / 10000000.0
+
         return 1.0 / distance
 
     def crossover(self, parent1, parent2):
-        """
-        PMX-like crossover. We choose start,end inclusive and fill remaining genes via mapping.
-        parent1/parent2 are permutations (numpy arrays)
-        """
         size = len(parent1)
-        offspring = np.full(size, -1, dtype=int)
+        if size < 2:
+            return parent1.copy()
+
+        # Convert parents to lists of standard Python ints
+        p1_list = [int(g) for g in parent1]
+        p2_list = [int(g) for g in parent2]
+
+        offspring_list = [-1] * size
+
+        # Choose segment bounds
         start, end = sorted(np.random.choice(size, 2, replace=False))
-        offspring[start:end] = parent1[start:end]
-        mapping = {parent2[i]: parent1[i] for i in range(start, end + 1)}
+
+        # copy segment from p1 to offspring list
+        segment_p1 = p1_list[start:end + 1]
+        offspring_list[start:end + 1] = segment_p1
+
+        # Genes in the P1 segment (used for conflict checking)
+        copied_genes = set(segment_p1)
+
+        # 2. Create mapping (P2 gene at index i -> P1 gene at index i)
+        mapping = {
+            p2_list[i]: p1_list[i]
+            for i in range(start, end + 1)
+        }
+
+        #Fill remaining genes
         for i in range(size):
-            if offspring[i] == -1:
-                gene = parent2[i]
-                while gene in mapping:
-                    gene = mapping[gene]
-                offspring[i] = gene
-        return offspring
+            if i in range(start, end + 1):
+                continue  # Skip the segment
+
+            gene_p2 = p2_list[i]
+
+            # If the P2 gene is not in the segment copied from P1, copy it directly.
+            if gene_p2 not in copied_genes:
+                offspring_list[i] = gene_p2
+            else:
+                # If the P2 gene is in the P1 segment, resolve its mapping chain.
+                # The map chain must lead to a gene that is not in the P1 segment.
+                current_gene_to_map = gene_p2
+
+                # Resolve the chain until the resulting gene is outside the mapping domain
+                while current_gene_to_map in mapping:
+                    current_gene_to_map = mapping[current_gene_to_map]
+
+                offspring_list[i] = current_gene_to_map
+        return np.array(offspring_list, dtype=int)
 
     def mutate(self, individual):
         mutated_individual = np.copy(individual)
+
+        if self.num_cities < 2:
+            return mutated_individual
         idx1, idx2 = np.random.choice(self.num_cities, 2, replace=False)
-        mutated_individual[idx1], mutated_individual[idx2] = mutated_individual[idx2], mutated_individual[idx1]
+        if idx1 > idx2:
+            idx1, idx2 = idx2, idx1
+        segment_to_invert = mutated_individual[idx1:idx2 + 1]
+        mutated_individual[idx1:idx2 + 1] = segment_to_invert[::-1]
+
         return mutated_individual
 
-    def solution_distance(self, individual1, individual2):
-        return calculate_solution_distance_tsp(individual1, individual2)
+    def solution_distance(self, route1, route2):
+        return calculate_solution_distance_tsp(route1, route2)
 
 
 class GCPProblem(Problem):

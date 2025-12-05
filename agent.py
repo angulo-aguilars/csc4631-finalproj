@@ -1,5 +1,6 @@
 import numpy as np
 from problem import Problem
+from typing import List, Any, Tuple
 
 class Agent:
     def __init__(self, problem: Problem, population_size=50, max_generations=200,
@@ -17,9 +18,9 @@ class Agent:
         self.sharing_radius = sharing_radius
         self.replacement_count = replacement_count
 
-        self.population = []
-        self.best_fitness_history = []
-        self.diversity_history = []
+        self.population: List[Any] = []
+        self.best_fitness_history: List[float] = []
+        self.diversity_history: List[float] = []
 
     def initialize_population(self):
         self.population = [
@@ -31,7 +32,7 @@ class Agent:
         self.initialize_population()
 
         for generation in range(self.max_generations):
-
+            print(f"[GA] Generation {generation} ...", end="\r")
             raw_fitness = np.array([
                 self.problem.evaluate_fitness(ind)
                 for ind in self.population
@@ -39,17 +40,23 @@ class Agent:
 
             shared_fitness = self._fitness_sharing(raw_fitness)
 
-            best_raw_fitness = np.max(raw_fitness)
+            best_raw_fitness = float(np.max(raw_fitness))
             self.best_fitness_history.append(best_raw_fitness)
 
             current_diversity = self.problem.calculate_diversity(self.population)
             self.diversity_history.append(current_diversity)
 
-            # ✅ Adaptive mutation
-            if generation > 5 and current_diversity < np.mean(self.diversity_history[-5:]):
-                self.mutation_rate = min(0.5, self.mutation_rate * 1.1)
-            else:
-                self.mutation_rate = max(self.initial_mutation_rate, self.mutation_rate * 0.95)
+            #Adaptive mutation
+            if generation > 5:
+                recent_div = np.mean(self.diversity_history[-10:])
+
+                if current_diversity < recent_div:
+                    self.mutation_rate = min(0.5, self.mutation_rate * 1.1)
+                else:
+                    self.mutation_rate = max(
+                        self.initial_mutation_rate,
+                        self.mutation_rate * 0.95
+                    )
 
             new_offspring = []
 
@@ -70,16 +77,28 @@ class Agent:
 
     def _fitness_sharing(self, raw_fitness):
         shared_fitness = np.copy(raw_fitness)
+        n = len(self.population)
 
-        for i in range(len(self.population)):
-            for j in range(len(self.population)):
-                if i != j:
-                    dist = self.problem.solution_distance(
-                        self.population[i],
-                        self.population[j]
-                    )
-                    if dist < self.sharing_radius:
-                        shared_fitness[i] /= (1 + (1 - dist / self.sharing_radius))
+        SAMPLE_SIZE_K = min(10, n - 1)
+
+        for i in range(n):
+            neighbor_indices = np.random.choice(
+                [j for j in range(n) if j != i],
+                SAMPLE_SIZE_K,
+                replace=False
+            )
+
+            sharing_factor_sum = 0
+
+            for j in neighbor_indices:
+                dist = self.problem.solution_distance(
+                    self.population[i],
+                    self.population[j]
+                )
+
+                if dist < self.sharing_radius:
+                    sharing_factor_sum += (1 - dist / self.sharing_radius)
+            shared_fitness[i] /= (1 + sharing_factor_sum)
 
         return shared_fitness
 
@@ -92,15 +111,17 @@ class Agent:
         best_idx = indices[np.argmax([shared_fitness[i] for i in indices])]
         return self.population[best_idx]
 
-    def _steady_state_replacement(self, new_offspring, raw_fitness):
+    def _steady_state_replacement(self, offspring: List[Any], raw_fitness: np.ndarray) -> None:
+        """Replace the worst individuals in the population with new offspring."""
         worst_indices = np.argsort(raw_fitness)[:self.replacement_count]
-        for i, idx in enumerate(worst_indices):
-            self.population[idx] = new_offspring[i]
+        for off, idx in zip(offspring, worst_indices):
+            self.population[idx] = off
 
-    def get_best_solution(self):
-        raw_fitnesses = [
+    def get_best_solution(self) -> Tuple[Any, float]:
+        """Return the best individual and its raw fitness."""
+        raw_fitness = [
             self.problem.evaluate_fitness(ind)
             for ind in self.population
         ]
-        best_index = np.argmax(raw_fitnesses)
-        return self.population[best_index], raw_fitnesses[best_index]
+        best_idx = int(np.argmax(raw_fitness))
+        return self.population[best_idx], raw_fitness[best_idx]

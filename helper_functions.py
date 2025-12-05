@@ -1,58 +1,35 @@
 import numpy as np
-from scipy.sparse.csgraph import minimum_spanning_tree
 
 # TSP HELPERS
-
-def calculate_distance_matrix(cities):
-    num_cities = len(cities)
-    distance_matrix = np.zeros((num_cities, num_cities))
-
-    for i in range(num_cities):
-        for j in range(num_cities):
-            if i != j:
-                distance_matrix[i, j] = np.linalg.norm(
-                    np.array(cities[i]) - np.array(cities[j])
-                )
-    return distance_matrix
-
-
-def calculate_mst_cost(nodes_subset, distance_matrix):
-    """
-    Computes the cost of the Minimum Spanning Tree over the
-    unvisited nodes for use as an admissible A* heuristic.
-
-    nodes_subset: list of remaining city indices
-    distance_matrix: full TSP distance matrix
-    """
-    if len(nodes_subset) <= 1:
-        return 0.0
-
-    # Build sub-matrix
-    sub_matrix = distance_matrix[np.ix_(nodes_subset, nodes_subset)]
-
-    mst = minimum_spanning_tree(sub_matrix)
-    return mst.sum()
-
-
-def calculate_solution_distance_tsp(individual1, individual2):
+def calculate_solution_distance_tsp(route1, route2):
     """
     Edge-based distance between two TSP tours.
     Returns number of differing edges.
     """
-    num_cities = len(individual1)
-    diff_count = 0
-    edges1 = set()
-    for i in range(num_cities):
-        city_a = individual1[i]
-        city_b = individual1[(i + 1) % num_cities]
-        edges1.add(tuple(sorted((city_a, city_b))))
+    n = len(route1)
 
-    for i in range(num_cities):
-        city_a = individual2[i]
-        city_b = individual2[(i + 1) % num_cities]
-        if tuple(sorted((city_a, city_b))) not in edges1:
+    # Build edge set for route1
+    edges_route1 = {
+        tuple(sorted((route1[i], route1[(i + 1) % n])))
+        for i in range(n)
+    }
+
+    diff_count = 0
+    for i in range(n):
+        edge = tuple(sorted((route2[i], route2[(i + 1) % n])))
+        if edge not in edges_route1:
             diff_count += 1
+
     return diff_count
+
+def calculate_distance_matrix(cities):
+    cities_array = np.array(cities)
+    diff = cities_array[:, None, :] - cities_array[None, :, :]
+    distance_matrix = np.linalg.norm(diff, axis=2)
+
+    # Ensure diagonal remains zero (distance to itself)
+    np.fill_diagonal(distance_matrix, 0)
+    return distance_matrix
 
 
 # GRAPH COLORING HELPERS

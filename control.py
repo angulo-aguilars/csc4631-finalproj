@@ -1,80 +1,47 @@
 import heapq
-import time
-from helper_functions import calculate_distance_matrix, calculate_mst_cost
+import numpy as np
 
+def tsp_astar(distance_matrix, start=0):
+    n = distance_matrix.shape[0]
 
-def astar_search_tsp(cities, max_time_seconds=120):
-    """
-    Implements the A* search algorithm for the TSP, optimized for memory
-    by only storing the minimum state and including a robust timeout.
+    initial_visited = frozenset([start])
+    start_node = (0.0, 0.0, start, initial_visited, [start])
 
-    State representation: (current_city, frozenset(unvisited_cities))
-    """
-    start_time = time.time()
-    num_cities = len(cities)
-    dist_matrix = calculate_distance_matrix(cities)
+    pq = []
+    heapq.heappush(pq, start_node)
 
-    # State Key: (current_city, unvisited_set)
-    # Priority queue item: (f_score, g_score, current_city, unvisited_set)
-
-    start_city = 0
-    # The set of cities to visit (excluding the start city 0)
-    unvisited_initial = frozenset(range(1, num_cities))
-
-    # Heuristic: MST cost of remaining nodes (all cities plus the return trip)
-    h_score_start = calculate_mst_cost(list(unvisited_initial) + [start_city], dist_matrix)
-    f_score = h_score_start
-
-    open_set = [(f_score, 0, start_city, unvisited_initial)]
-
-    best_path_cost = float('inf')
-
-    # g_scores tracks the minimum cost found to reach a state
-    g_scores = {(start_city, unvisited_initial): 0}
     expansions = 0
 
-    while open_set:
+    min_g_to_state = {(start, initial_visited): 0.0}
+
+    while pq:
+        f, g, current, visited, route = heapq.heappop(pq)
         expansions += 1
 
-        if expansions % 500 == 0:
-            if time.time() - start_time > max_time_seconds:
-                print(f"\n[A* Search Timeout] Exceeded {max_time_seconds}s limit after {expansions} expansions.")
-                return None, best_path_cost # Return best cost found so far
+        if len(visited) == n:
+            total_cost = g + distance_matrix[current, start]
+            final_route = route + [start]
 
-        f, g, current, unvisited_set = heapq.heappop(open_set)
+            return final_route, total_cost
 
-        # Skip state if a cheaper path to this state has already been found and processed
-        if g > g_scores.get((current, unvisited_set), float('inf')):
-             continue
-
-        if not unvisited_set:
-            # All cities visited. Calculate final cost (current -> start_city 0)
-            final_cost = g + dist_matrix[current, start_city]
-            if final_cost < best_path_cost:
-                best_path_cost = final_cost
-            continue
-
-        for next_city in unvisited_set:
-            new_g = g + dist_matrix[current, next_city]
-            new_unvisited = unvisited_set - {next_city}
-
-            #Check against the best complete path found so far (Alpha-Pruning effect)
-            if new_g >= best_path_cost:
+        for nxt in range(n):
+            if nxt in visited:
                 continue
 
-            # Heuristic calculation: MST cost of remaining nodes + start city
-            remaining_nodes = list(new_unvisited) + [next_city, start_city]
-            h_score = calculate_mst_cost(remaining_nodes, dist_matrix)
+            g2 = g + distance_matrix[current, nxt]
+            visited2 = visited | {nxt}
+            state2 = (nxt, visited2)
 
-            new_f = new_g + h_score
-            new_state = (next_city, new_unvisited)
+            if state2 in min_g_to_state and g2 >= min_g_to_state[state2]:
+                continue
 
-            # Check if this new path is better than the currently known shortest path to new_state
-            if new_g < g_scores.get(new_state, float('inf')):
+            min_g_to_state[state2] = g2
 
-                # Update g_scores and push to open_set
-                g_scores[new_state] = new_g
-                heapq.heappush(open_set, (new_f, new_g, next_city, new_unvisited))
+            route2 = route + [nxt]
 
-    print(f"\n[A* Search Complete] Total expansions: {expansions}")
-    return None, best_path_cost
+            h2 = 0.0
+            f2 = g2 + h2
+
+            heapq.heappush(pq, (f2, g2, nxt, visited2, route2))
+
+    return None, float("inf")
