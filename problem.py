@@ -108,9 +108,16 @@ class TSPProblem(Problem):
                 current_gene_to_map = gene_p2
 
                 # Resolve the chain until the resulting gene is outside the mapping domain
+                visited = set()
                 while current_gene_to_map in mapping:
+                    if current_gene_to_map in visited:
+                        # cycle detected → choose fallback
+                        current_gene_to_map = np.random.choice(
+                            [x for x in range(size) if x not in copied_genes]
+                        )
+                        break
+                    visited.add(current_gene_to_map)
                     current_gene_to_map = mapping[current_gene_to_map]
-
                 offspring_list[i] = current_gene_to_map
         return np.array(offspring_list, dtype=int)
 
@@ -154,7 +161,7 @@ class GCPProblem(Problem):
         conflicts = 0
         for u in range(self.num_vertices):
             for v in self.graph[u]:
-                if int(individual[u]) == int(individual[v]):
+                if v > u and int(individual[u]) == int(individual[v]):
                     conflicts += 1
         # If adjacency lists are symmetric, each conflict counted twice; it's OK as relative measure.
         # We return negative conflicts so higher fitness == better (Agent uses argmax).
