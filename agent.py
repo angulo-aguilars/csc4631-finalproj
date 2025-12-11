@@ -125,8 +125,8 @@ class Agent:
 
     def _tournament_selection(self, shared_fitness: np.ndarray):
         pop_n = len(self.population)
-        k = min(self.tournament_size, pop_n)     # FIXED: ensures no crash
-        k = max(k, 1)                            # FIXED: never 0
+        k = min(self.tournament_size, pop_n)
+        k = max(k, 1)
 
         # If population is too small: choose random single
         if k == 1:

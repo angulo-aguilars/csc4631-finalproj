@@ -98,3 +98,24 @@ def hill_climbing_tsp(cities, max_iterations=5000, start_route=None):
 
     print(f"Hill Climbing: Steps = {total_steps}, Final Cost = {current_cost:.2f}")
     return current_route, current_cost
+
+
+
+def greedy_coloring(adjacency_list, num_colors):
+    """
+    Greedy heuristic for baseline
+    :param adjacency_list:
+    :param num_colors:
+    :return:
+    """
+    n = len(adjacency_list)
+    solution = np.zeros(n, dtype=int)
+    for node in range(n):
+        neighbor_colors = {solution[nei] for nei in adjacency_list[node]}
+        for c in range(num_colors):
+            if c not in neighbor_colors:
+                solution[node] = c
+                break
+    return solution
+
+
