@@ -11,7 +11,7 @@ def calculate_tour_cost(route, distance_matrix):
     current_cities = route_array
     next_cities = np.roll(route_array, -1)
 
-    # Use vectorized lookup (fast)
+    # Use vectorized lookup
     distances = distance_matrix[current_cities, next_cities]
     return np.sum(distances)
 
@@ -36,8 +36,7 @@ def hill_climbing_tsp(cities, max_iterations=5000, start_route=None):
     """
     Implements Steepest Ascent Hill Climbing using the Swap neighborhood.
 
-    Parameters
-    ----------
+    Parameters:
     cities : np.ndarray
         City coordinates.
     max_iterations : int
@@ -45,8 +44,7 @@ def hill_climbing_tsp(cities, max_iterations=5000, start_route=None):
     start_route : list or None
         Starting route. If None, a random route is generated.
 
-    Returns
-    -------
+    Returns:
     (final_route, final_cost)
     """
 
