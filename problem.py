@@ -141,15 +141,18 @@ class TSPProblem(Problem):
 class GCPProblem(Problem):
     def __init__(self, graph, num_colors):
         """
-        graph: adjacency list or dict mapping vertex -> iterable of neighbors
+        Graph Coloring Problem using adjacency list.
+        graph: dict or list-of-lists
         num_colors: integer
         """
-        # Normalize graph to adjacency list dict of lists
+        # Normalize adjacency list format
         if isinstance(graph, dict):
             self.graph = {int(k): list(v) for k, v in graph.items()}
-        else:
-            # If graph is provided as adjacency matrix or list-of-lists, try to normalize
+        elif isinstance(graph, list):
             self.graph = {i: list(neigh) for i, neigh in enumerate(graph)}
+        else:
+            raise ValueError("Graph must be a dict or list-of-lists adjacency list.")
+
         self.num_vertices = len(self.graph)
         self.num_colors = int(num_colors)
 

@@ -3,113 +3,102 @@ import matplotlib.pyplot as plt
 from problem import GCPProblem
 from agent import Agent
 from helper_functions import generate_random_graph
+from control import greedy_coloring
 
-# ----------------------------
-# Experiment Parameters
-# ----------------------------
-num_instances = 5
-num_trials = 10
-num_nodes = 20
-num_colors = 4
-population_size = 20
-max_generations = 50
+# -------------------------------
+# Experiment Runner for Graph Coloring using Agent
+# -------------------------------
+def run_graph_coloring_experiments(num_vertices_list=[30,50,70,100],
+                                   edge_densities=[0.1,0.3,0.5],
+                                   trials=50,
+                                   num_colors=None,
+                                   agent_params=None):
+    results = {}
 
+    if agent_params is None:
+        agent_params = {
+            'population_size': 50,
+            'max_generations': 200,
+            'initial_mutation_rate': 0.1,
+            'tournament_size': 5,
+            'sharing_radius': 0.3,
+            'replacement_count': 2,
+            'maximize': True
+        }
 
-# ----------------------------
-# Baseline: Greedy Coloring
-# ----------------------------
-def greedy_coloring(graph, num_colors):
-    solution = np.full(len(graph), -1, dtype=int)
-    for v in range(len(graph)):
-        forbidden = {solution[u] for u in graph[v] if solution[u] != -1}
-        for color in range(num_colors):
-            if color not in forbidden:
-                solution[v] = color
-                break
-    # Fitness = negative number of conflicts
-    conflicts = 0
-    for u in range(len(graph)):
-        for v in graph[u]:
-            if v > u and solution[u] == solution[v]:
-                conflicts += 1
-    return solution, -conflicts
+    for n in num_vertices_list:
+        for p in edge_densities:
+            key = f"n={n}_p={p}"
+            results[key] = {'agent': [], 'greedy': [],
+                            'fitness_histories': [], 'diversity_histories': []}
+            print(f"Running experiments for {key}...")
 
+            for _ in range(trials):
+                adjacency_list = generate_random_graph(n, p)
 
-# ----------------------------
-# Generate Random Instances
-# ----------------------------
-instances = [generate_random_graph(num_nodes, edge_probability=0.2) for _ in range(num_instances)]
+                k = num_colors if num_colors else max(1, int(n*p*1.5))
 
-# ----------------------------
-# Run Experiments
-# ----------------------------
-results = {
-    'advanced_ga': [],
-    'simple_ga': [],
-    'greedy': []
-}
+                # Initialize problem
+                problem = GCPProblem(adjacency_list, k)
 
-for idx, graph in enumerate(instances):
-    print(f"\n--- Instance {idx} ---")
-    problem = GCPProblem(graph, num_colors)
+                # Greedy baseline
+                greedy_sol = greedy_coloring(adjacency_list, k)
+                results[key]['greedy'].append(problem.evaluate_fitness(greedy_sol))
 
-    adv_trial_best = []
-    sim_trial_best = []
-    greedy_best, _ = greedy_coloring(graph, num_colors)
+                # Advanced GA using Agent
+                agent = Agent(problem, **agent_params)
+                agent.run_evolution()
+                best_sol, best_fit = agent.get_best_solution()
 
-    for trial in range(num_trials):
-        # --- Advanced GA ---
-        adv_agent = Agent(problem, population_size=population_size, max_generations=max_generations)
-        adv_agent.run_evolution()
-        _, adv_fitness = adv_agent.get_best_solution()
-        adv_trial_best.append(adv_fitness)
+                results[key]['agent'].append(best_fit)
+                results[key]['fitness_histories'].append(agent.best_fitness_history)
+                results[key]['diversity_histories'].append(agent.diversity_history)
 
-        # --- Simple GA ---
-        sim_agent = Agent(problem, population_size=population_size, max_generations=max_generations)
-        # Disable adaptive mutation / sharing / steady-state for simple GA if needed
-        # For simplicity, we just use same agent with smaller population
-        sim_agent.run_evolution()
-        _, sim_fitness = sim_agent.get_best_solution()
-        sim_trial_best.append(sim_fitness)
+    return results
 
-        print(f"Trial {trial} | Adv GA: {adv_fitness:.1f}, Simple GA: {sim_fitness:.1f}")
+# -------------------------------
+# Plotting Utilities
+# -------------------------------
+def plot_results(results):
+    for key, val in results.items():
+        # Bar plot for mean ± std
+        plt.figure(figsize=(8,5))
+        labels = ['Agent','Greedy']
+        means = [np.mean(val['agent']), np.mean(val['greedy'])]
+        stds = [np.std(val['agent']), np.std(val['greedy'])]
 
-    # Store results
-    results['advanced_ga'].append(adv_trial_best)
-    results['simple_ga'].append(sim_trial_best)
-    # Greedy is deterministic
-    results['greedy'].append([_ for _ in range(num_trials)])
+        plt.bar(labels, means, yerr=stds, capsize=5)
+        plt.ylabel('Fitness (higher is better, i.e., fewer conflicts)')
+        plt.title(f'Graph Coloring Results for {key}')
+        plt.show()
 
+        # Plot fitness over generations (average)
+        if val['fitness_histories']:
+            fitness_array = np.array(val['fitness_histories'])
+            avg_fitness = np.mean(fitness_array, axis=0)
+            plt.figure(figsize=(8,5))
+            plt.plot(avg_fitness, label='Average Agent Fitness')
+            plt.xlabel('Generation')
+            plt.ylabel('Fitness')
+            plt.title(f'Fitness Convergence for {key}')
+            plt.legend()
+            plt.show()
 
-# ----------------------------
-# Summarize Results
-# ----------------------------
-def summarize(trial_data):
-    trial_data = np.array(trial_data)
-    avg = np.mean(trial_data)
-    std = np.std(trial_data)
-    return avg, std
+        # Plot diversity over generations (average)
+        if val['diversity_histories']:
+            diversity_array = np.array(val['diversity_histories'])
+            avg_diversity = np.mean(diversity_array, axis=0)
+            plt.figure(figsize=(8,5))
+            plt.plot(avg_diversity, label='Average Population Diversity')
+            plt.xlabel('Generation')
+            plt.ylabel('Diversity')
+            plt.title(f'Population Diversity Over Generations for {key}')
+            plt.legend()
+            plt.show()
 
-
-print("\n--- Summary of Best Fitness per Instance ---")
-for idx in range(num_instances):
-    adv_avg, adv_std = summarize(results['advanced_ga'][idx])
-    sim_avg, sim_std = summarize(results['simple_ga'][idx])
-    greedy_avg, greedy_std = summarize(results['greedy'][idx])
-    print(f"Instance {idx} | Advanced GA: {adv_avg:.2f} ± {adv_std:.2f}, "
-          f"Simple GA: {sim_avg:.2f} ± {sim_std:.2f}, "
-          f"Greedy: {greedy_avg:.2f}")
-
-# ----------------------------
-# Plot Convergence for first instance
-# ----------------------------
-plt.figure(figsize=(10, 5))
-adv_agent = Agent(GCPProblem(instances[0], num_colors), population_size=population_size,
-                  max_generations=max_generations)
-adv_agent.run_evolution()
-plt.plot(adv_agent.best_fitness_history, label="Advanced GA")
-plt.xlabel("Generation")
-plt.ylabel("Best Fitness")
-plt.title("Convergence Example (Instance 0)")
-plt.legend()
-plt.show()
+# -------------------------------
+# Main Entry
+# -------------------------------
+if __name__ == "__main__":
+    results = run_graph_coloring_experiments()
+    plot_results(results)

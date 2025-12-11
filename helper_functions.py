@@ -61,8 +61,7 @@ def calculate_solution_distance_gcp(individual1, individual2):
 
 def generate_random_graph(num_nodes, edge_probability=0.3):
     """
-    Returns an adjacency LIST (dict), not a matrix,
-    so it matches your GCPProblem class.
+    Returns an adjacency LIST (dict)
     """
     graph = {i: [] for i in range(num_nodes)}
 
