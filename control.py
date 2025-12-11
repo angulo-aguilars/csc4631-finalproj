@@ -1,47 +1,100 @@
-import heapq
 import numpy as np
+import time
+from helper_functions import calculate_distance_matrix
 
-def tsp_astar(distance_matrix, start=0):
-    n = distance_matrix.shape[0]
+def calculate_tour_cost(route, distance_matrix):
+    """Calculates the total distance of a full tour."""
+    if route is None or len(route) < 2:
+        return float('inf')
 
-    initial_visited = frozenset([start])
-    start_node = (0.0, 0.0, start, initial_visited, [start])
+    route_array = np.array(route)
+    current_cities = route_array
+    next_cities = np.roll(route_array, -1)
 
-    pq = []
-    heapq.heappush(pq, start_node)
+    # Use vectorized lookup (fast)
+    distances = distance_matrix[current_cities, next_cities]
+    return np.sum(distances)
 
-    expansions = 0
+def get_swap_neighbors(route):
+    """Generates all neighbors reachable by a single swap operation."""
+    n = len(route)
+    route = list(route)  # Ensure it's mutable list
+    neighbors = []
 
-    min_g_to_state = {(start, initial_visited): 0.0}
+    # Generate all unique pairs (i, j) where i < j
+    for i in range(n):
+        for j in range(i + 1, n):
+            neighbor = route[:]  # Copy the route
+            neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+            neighbors.append(neighbor)
 
-    while pq:
-        f, g, current, visited, route = heapq.heappop(pq)
-        expansions += 1
+    return neighbors
 
-        if len(visited) == n:
-            total_cost = g + distance_matrix[current, start]
-            final_route = route + [start]
 
-            return final_route, total_cost
+#  Main Hill Climbing TSP Solver
+def hill_climbing_tsp(cities, max_iterations=5000, start_route=None):
+    """
+    Implements Steepest Ascent Hill Climbing using the Swap neighborhood.
 
-        for nxt in range(n):
-            if nxt in visited:
-                continue
+    Parameters
+    ----------
+    cities : np.ndarray
+        City coordinates.
+    max_iterations : int
+        Maximum number of non-improving iterations before stopping.
+    start_route : list or None
+        Starting route. If None, a random route is generated.
 
-            g2 = g + distance_matrix[current, nxt]
-            visited2 = visited | {nxt}
-            state2 = (nxt, visited2)
+    Returns
+    -------
+    (final_route, final_cost)
+    """
 
-            if state2 in min_g_to_state and g2 >= min_g_to_state[state2]:
-                continue
+    n = len(cities)
+    distance_matrix = calculate_distance_matrix(cities)
 
-            min_g_to_state[state2] = g2
+    # Initialize with a random route if none provided
+    if start_route is None:
+        current_route = np.random.permutation(n).tolist()
+    else:
+        current_route = start_route
 
-            route2 = route + [nxt]
+    current_cost = calculate_tour_cost(current_route, distance_matrix)
 
-            h2 = 0.0
-            f2 = g2 + h2
+    non_improving_steps = 0
+    total_steps = 0
 
-            heapq.heappush(pq, (f2, g2, nxt, visited2, route2))
+    print(f"Hill Climbing: Initial Cost = {current_cost:.2f}")
 
-    return None, float("inf")
+    while non_improving_steps < max_iterations:
+        total_steps += 1
+
+        #Generate all neighbors
+        neighbors = get_swap_neighbors(current_route)
+
+        best_neighbor = None
+        best_neighbor_cost = float('inf')
+
+        #Find the best move
+        for neighbor_route in neighbors:
+            cost = calculate_tour_cost(neighbor_route, distance_matrix)
+
+            if cost < best_neighbor_cost:
+                best_neighbor_cost = cost
+                best_neighbor = neighbor_route
+
+        #Check for improvement
+        if best_neighbor_cost < current_cost:
+            # Move to the new best state
+            current_route = best_neighbor
+            current_cost = best_neighbor_cost
+            non_improving_steps = 0  # Reset counter
+
+        else:
+            #Local optimum reached for the Swap neighborhood
+            non_improving_steps += 1
+            if non_improving_steps >= max_iterations:
+                break
+
+    print(f"Hill Climbing: Steps = {total_steps}, Final Cost = {current_cost:.2f}")
+    return current_route, current_cost

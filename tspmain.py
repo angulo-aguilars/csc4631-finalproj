@@ -5,11 +5,11 @@ import os
 from pathlib import Path
 from agent import Agent
 from problem import TSPProblem
-from control import tsp_astar
+from control import hill_climbing_tsp
 
-POP_SIZE = 100
-MAX_GEN = 500
-NUM_CITIES_TSP = 20
+POP_SIZE = 20
+MAX_GEN = 100
+NUM_CITIES_TSP = 7
 SHARING_RADIUS = 0.3
 RESULTS_DIR = "tsp_results"
 
@@ -17,7 +17,7 @@ RESULTS_DIR = "tsp_results"
 
 def run_tsp_comparison():
     """
-    runs the TSP GA vs A* Control
+    runs the TSP GA vs Hill Climbing Control
     """
 
     Path(RESULTS_DIR).mkdir(exist_ok=True)
@@ -44,25 +44,26 @@ def run_tsp_comparison():
     best_cost_ga = 1.0 / best_fitness_ga
 
     # run a* search
-    print(f"\nRunning A* Search on {NUM_CITIES_TSP} cities...")
+    print(f"\nRunning Hill Climbing on {NUM_CITIES_TSP} cities...")
 
-    start_time_astar = time.time()
-    astar_route, astar_cost = tsp_astar(
-        tsp_problem.distance_matrix,
+    start_time_hc = time.time()
+    hc_route, hc_cost = hill_climbing_tsp(
+        cities=cities,
+        max_iterations=MAX_GEN
     )
-    astar_time = time.time() - start_time_astar
+    hc_time = time.time() - start_time_hc
 
     # print results
     print("\nResults: TSP")
-    print(f"A* Cost : {astar_cost:.2f} | Time: {astar_time:.2f}s")
+    print(f"HC Cost : {hc_cost:.2f} | Time: {hc_time:.2f}s")
     print(f"GA Cost: {best_cost_ga:.2f} | Time: {ga_time:.2f}s")
 
-    if 0 < astar_cost < float('inf'):
-        error = ((best_cost_ga - astar_cost) / astar_cost) * 100
-        print(f"GA Optimization Error: {error:.2f}% relative to optimal")
-        optimal_fitness = 1.0 / astar_cost
+    if 0 < hc_cost < float('inf'):
+        error = ((best_cost_ga - hc_cost) / hc_cost) * 100
+        print(f"GA Optimization Error: {error:.2f}% relative to control")
+        optimal_fitness = 1.0 / hc_cost
     else:
-        print("A* could not complete — no optimal reference available.")
+        print("HC could not complete")
         optimal_fitness = 0
 
    #plot for fitness eval
@@ -74,7 +75,7 @@ def run_tsp_comparison():
             y=optimal_fitness,
             color="r",
             linestyle="--",
-            label=f"A* Optimal Fitness ({optimal_fitness:.4f})"
+            label=f"HC Fitness ({optimal_fitness:.4f})"
         )
 
     plt.title("TSP: Fitness Over Generations")
@@ -91,9 +92,9 @@ def run_tsp_comparison():
     costs = [best_cost_ga]
     labels = ["Advanced GA"]
 
-    if astar_cost < float("inf"):
-        costs.append(astar_cost)
-        labels.append("A* (Optimal)")
+    if hc_cost < float("inf"):
+        costs.append(hc_cost)
+        labels.append("Hill Climbing")
 
     plt.bar(labels, costs, color=["darkgreen", "red"][:len(labels)])
     plt.title(f"TSP Final Cost Comparison (N={NUM_CITIES_TSP})")
