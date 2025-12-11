@@ -9,8 +9,8 @@ from control import tsp_astar
 
 POP_SIZE = 100
 MAX_GEN = 500
-NUM_CITIES_TSP = 15
-SHARING_RADIUS = 0.2
+NUM_CITIES_TSP = 20
+SHARING_RADIUS = 0.3
 RESULTS_DIR = "tsp_results"
 
 
@@ -34,7 +34,8 @@ def run_tsp_comparison():
         tsp_problem,
         population_size=POP_SIZE,
         max_generations=MAX_GEN,
-        sharing_radius=SHARING_RADIUS
+        sharing_radius=SHARING_RADIUS,
+        tournament_size=5
     )
     ga_agent.run_evolution()
     ga_time = time.time() - start_time_ga

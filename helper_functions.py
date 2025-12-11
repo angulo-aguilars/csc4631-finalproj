@@ -31,6 +31,22 @@ def calculate_distance_matrix(cities):
     np.fill_diagonal(distance_matrix, 0)
     return distance_matrix
 
+def two_opt_swap(route, i, k):
+    """
+    Performs a 2-opt swap by reversing the segment of the route from index i to k (inclusive).
+    """
+    segment_start = route[:i]
+
+    # Segment from i to k (inclusive), reversed
+    # Slicing route[i:k + 1] gets the segment, [::-1] reverses it.
+    segment_reversed = route[i:k + 1][::-1]
+
+    # Segment after k (from k+1 to end)
+    segment_end = route[k + 1:]
+
+    new_route = np.concatenate((segment_start, segment_reversed, segment_end))
+    return new_route
+
 
 # GRAPH COLORING HELPERS
 

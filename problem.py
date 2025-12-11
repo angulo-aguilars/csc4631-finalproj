@@ -47,21 +47,14 @@ class TSPProblem(Problem):
         return np.random.permutation(self.num_cities)
 
     def evaluate_fitness(self, individual):
-        # Ensure it's a valid permutation (no duplicates/missing cities)
-        if len(set(individual)) != self.num_cities:
-            # Assign a heavy penalty (very low fitness value)
-            return 1.0 / 10000000.0
+        current_cities = individual
+        next_cities = np.roll(individual, -1)
 
-        # sum tour length (wrap-around)
-        distance = 0.0
-        for i in range(self.num_cities):
-            initial_city = individual[i]
-            last_city = individual[(i + 1) % self.num_cities]
-            distance += self.distance_matrix[initial_city][last_city]
+        distances = self.distance_matrix[current_cities, next_cities]
+        distance = np.sum(distances)
 
-        # Prevent division by zero/near-zero
-        if distance < 1e-8:
-            return 1.0 / 10000000.0
+        if distance <= 1e-8:
+            return 1e-10
 
         return 1.0 / distance
 
@@ -70,73 +63,80 @@ class TSPProblem(Problem):
         if size < 2:
             return parent1.copy()
 
-        # Convert parents to lists of standard Python ints
-        p1_list = [int(g) for g in parent1]
-        p2_list = [int(g) for g in parent2]
-
-        offspring_list = [-1] * size
-
-        # Choose segment bounds
+        #Choosing segment bounds and copy segment from P1
         start, end = sorted(np.random.choice(size, 2, replace=False))
 
-        # copy segment from p1 to offspring list
-        segment_p1 = p1_list[start:end + 1]
-        offspring_list[start:end + 1] = segment_p1
+        offspring = np.full(size, -1, dtype=int)
+        offspring[start:end + 1] = parent1[start:end + 1]
+        copied_genes = set(parent1[start:end + 1])
 
-        # Genes in the P1 segment (used for conflict checking)
-        copied_genes = set(segment_p1)
+        #sequence to fill the remaining gaps
 
-        # 2. Create mapping (P2 gene at index i -> P1 gene at index i)
-        mapping = {
-            p2_list[i]: p1_list[i]
-            for i in range(start, end + 1)
-        }
+        # Get cities from P2 that are NOT in the copied segment, preserving their P2 order
+        fill_sequence = [
+            gene for gene in parent2
+            if gene not in copied_genes
+        ]
 
-        #Fill remaining genes
-        for i in range(size):
-            if i in range(start, end + 1):
-                continue  # Skip the segment
+        #Determine the insertion points
+        #Insertion starts at (end + 1) and wraps around to 0
+        insertion_points = list(range(end + 1, size)) + list(range(0, start))
 
-            gene_p2 = p2_list[i]
+        #Inserting the genes from fill_sequence into the calculated points
+        for idx, gene in zip(insertion_points, fill_sequence):
+            offspring[idx] = gene
 
-            # If the P2 gene is not in the segment copied from P1, copy it directly.
-            if gene_p2 not in copied_genes:
-                offspring_list[i] = gene_p2
-            else:
-                # If the P2 gene is in the P1 segment, resolve its mapping chain.
-                # The map chain must lead to a gene that is not in the P1 segment.
-                current_gene_to_map = gene_p2
-
-                # Resolve the chain until the resulting gene is outside the mapping domain
-                visited = set()
-                while current_gene_to_map in mapping:
-                    if current_gene_to_map in visited:
-                        # cycle detected → choose fallback
-                        current_gene_to_map = np.random.choice(
-                            [x for x in range(size) if x not in copied_genes]
-                        )
-                        break
-                    visited.add(current_gene_to_map)
-                    current_gene_to_map = mapping[current_gene_to_map]
-                offspring_list[i] = current_gene_to_map
-        return np.array(offspring_list, dtype=int)
+        return offspring
 
     def mutate(self, individual):
-        mutated_individual = np.copy(individual)
+        current_route = individual
+        n = self.num_cities
 
-        if self.num_cities < 2:
-            return mutated_individual
-        idx1, idx2 = np.random.choice(self.num_cities, 2, replace=False)
-        if idx1 > idx2:
-            idx1, idx2 = idx2, idx1
-        segment_to_invert = mutated_individual[idx1:idx2 + 1]
-        mutated_individual[idx1:idx2 + 1] = segment_to_invert[::-1]
+        if n < 3:
+            return individual
 
-        return mutated_individual
+        best_route = current_route.copy()  # Start with a copy
+        best_distance = self._calculate_total_distance(individual)
+        improved = True
+
+        while improved:
+            improved = False
+            for i in range(1, n - 1):
+                for k in range(i + 1, n):
+                    # Optimized edge-cost comparison
+
+                    p_i_minus_1 = best_route[i - 1]
+                    p_i = best_route[i]
+                    p_k = best_route[k]
+                    p_k_plus_1 = best_route[(k + 1) % n]
+
+                    cost_removed = (self.distance_matrix[p_i_minus_1, p_i] +
+                                    self.distance_matrix[p_k, p_k_plus_1])
+
+                    cost_added = (self.distance_matrix[p_i_minus_1, p_k] +
+                                  self.distance_matrix[p_i, p_k_plus_1])
+
+                    if cost_added < cost_removed:
+                        best_route = two_opt_swap(best_route, i, k)
+
+                        best_distance = best_distance - cost_removed + cost_added
+                        improved = True
+                        break
+                if improved:
+                    break
+
+        return best_route
 
     def solution_distance(self, route1, route2):
-        return calculate_solution_distance_tsp(route1, route2)
+        diff_count = calculate_solution_distance_tsp(route1, route2)
+        return diff_count / self.num_cities
 
+    def _calculate_total_distance(self, individual):
+        """Internal helper to calculate total distance without fitness transformation."""
+        current_cities = individual
+        next_cities = np.roll(individual, -1)
+        distances = self.distance_matrix[current_cities, next_cities]
+        return np.sum(distances)
 
 class GCPProblem(Problem):
     def __init__(self, graph, num_colors):
