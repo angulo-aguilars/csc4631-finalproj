@@ -200,6 +200,15 @@ class Agent:
                                   offspring: List[Any],
                                   offspring_fitnesses: np.ndarray,
                                   raw_fitness: np.ndarray) -> None:
+        """
+        Implements steady state replacement, substituting the worst individuals in the current population
+        with newly generated offspring. This method ensures that the population size remains constant
+
+        :param offspring: List of new individuals generated through crossover and mutation
+        :param offspring_fitnesses: numpy array of the raw fitness values for the new offspring
+        :param raw_fitness: numpy array of the raw fitness values for the current population
+        :return: None
+        """
         worst_indices = np.argsort(raw_fitness)[:self.replacement_count]
         for off, idx in zip(offspring, worst_indices):
             self.population[idx] = off

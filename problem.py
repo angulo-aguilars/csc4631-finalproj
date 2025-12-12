@@ -55,16 +55,31 @@ class Problem(ABC):
 class TSPProblem(Problem):
     def __init__(self, cities):
         """
-        cities: array-like of shape (num_cities, 2) or similar coordinates
+        Initializes the TSP problem, calculating the distance matrix
+
+        :param cities: array-like of shape (num_cities, 2) or similar coordinates
         """
         self.cities = np.asarray(cities)
         self.num_cities = len(self.cities)
         self.distance_matrix = calculate_distance_matrix(self.cities)
 
     def generate_random_solution(self):
+        """
+        Generates a random permutation of city indices
+
+        :return: np.ndarray representing the route
+        """
         return np.random.permutation(self.num_cities)
 
     def evaluate_fitness(self, individual):
+        """
+        Calculates the fitness score, which is defined as 1 / total tour distance
+        Uses numpy vectorization for faster distance calculation
+
+        :param individual: np.ndarray representing the route
+        :return: float: the fitness score
+        """
+
         current_cities = individual
         next_cities = np.roll(individual, -1)
 
@@ -77,6 +92,15 @@ class TSPProblem(Problem):
         return 1.0 / distance
 
     def crossover(self, parent1, parent2):
+        """
+        Preserves a segment from parent 1 and the relative order of the remaining
+        cities from parent 2
+
+        :param parent1: first parent route
+        :param parent2: second parent route
+        :return: np.ndarray: the offspring route
+        """
+
         size = len(parent1)
         if size < 2:
             return parent1.copy()
@@ -107,6 +131,13 @@ class TSPProblem(Problem):
         return offspring
 
     def mutate(self, individual):
+        """
+        Applies the 2 opt local search heuristic to the individual until a local optimum is reached. this
+        is a form of exploitation
+
+        :param individual: the route to mutate and optimize
+        :return: np.ndarray: the locally optimized route
+        """
         current_route = individual
         n = self.num_cities
 
@@ -122,18 +153,15 @@ class TSPProblem(Problem):
             for i in range(1, n - 1):
                 for k in range(i + 1, n):
                     # Optimized edge-cost comparison
-
                     p_i_minus_1 = best_route[i - 1]
                     p_i = best_route[i]
                     p_k = best_route[k]
                     p_k_plus_1 = best_route[(k + 1) % n]
-
                     cost_removed = (self.distance_matrix[p_i_minus_1, p_i] +
                                     self.distance_matrix[p_k, p_k_plus_1])
 
                     cost_added = (self.distance_matrix[p_i_minus_1, p_k] +
                                   self.distance_matrix[p_i, p_k_plus_1])
-
                     if cost_added < cost_removed:
                         best_route = two_opt_swap(best_route, i, k)
 
@@ -142,10 +170,16 @@ class TSPProblem(Problem):
                         break
                 if improved:
                     break
-
         return best_route
 
     def solution_distance(self, route1, route2):
+        """
+        Calculates the edge distance and normalizes the result into [0,1]
+
+        :param route1: first route
+        :param route2: second route
+        :return: float: normalized edge difference [0,1]
+        """
         diff_count = calculate_solution_distance_tsp(route1, route2)
         return diff_count / self.num_cities
 

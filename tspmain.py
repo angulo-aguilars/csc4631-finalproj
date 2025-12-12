@@ -1,3 +1,19 @@
+"""
+tspmain.py
+In this file, we run set experiments for the Traveling Salesperson Problem.
+Our advanced genetic algorithm is compared against the Hill Climbing with Steepest
+Ascent control/baseline algorithm.
+
+The purpose of this file:
+    - Define a series of experiments with varying parameters like city count, population size, and max generations to test scalability
+    - Generates random city coordinates for each experiment, ensuring both the GA and HC solve the exact same instance
+    - Executes the Advanced Genetic Algorithm with the four advanced mechanisms
+    - Executes the Hill Climbing control algorithm to establish the local optimum baseline
+    - Calculates the final cost, runtime, and the GA's percentage improvement relative to the HC cost
+    - Creates a dedicated subdirectory 'tsp_results' for each experiment run to organize outputs.
+    - Generates visual results including fitness over generation plots, final cost comparison bar charts, and plots of the best routes found by both algorithms.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -41,6 +57,8 @@ def run_single_experiment(experiment_config):
     """
     Runs the GA vs Hill Climbing comparison for a single configuration.
     Saves results into a subdirectory named after the experiment.
+
+    :param experiment_config: Dictionary containing settings for a single experiment
     """
     name = experiment_config["name"]
     NUM_CITIES_TSP = experiment_config["num_cities"]
@@ -52,7 +70,7 @@ def run_single_experiment(experiment_config):
     RESULTS_DIR = Path(RESULTS_BASE_DIR) / name
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n--- Running Experiment: {name} (Cities: {NUM_CITIES_TSP}, Pop: {POP_SIZE}, Gen: {MAX_GEN}) ---")
+    print(f"\nRunning Experiment: {name} (Cities: {NUM_CITIES_TSP}, Pop: {POP_SIZE}, Gen: {MAX_GEN})")
 
     # Generate random TSP instance (The cities must be the same for both algorithms)
     cities = np.random.rand(NUM_CITIES_TSP, 2) * 100
@@ -87,7 +105,7 @@ def run_single_experiment(experiment_config):
     hc_time = time.time() - start_time_hc
 
     # Print and Calculate Results
-    print("\n--- Summary ---")
+    print("\nSummary")
     print(f"HC Cost : {hc_cost:.2f} | Time: {hc_time:.2f}s")
     print(f"GA Cost: {best_cost_ga:.2f} | Time: {ga_time:.2f}s")
 
@@ -113,7 +131,14 @@ def run_single_experiment(experiment_config):
 
 
 def plot_fitness_evaluation(ga_fitness_history, hc_fitness, num_cities, results_dir):
-    """Plots the GA's best fitness over generations against the HC fitness."""
+    """
+    Plots the GA's best fitness over generations against the HC fitness.
+
+    :param ga_fitness_history: List of the best fitness scores over time from the GA
+    :param hc_fitness: The final fitness value achieved by the HC control
+    :param num_cities: The number of cities for the experiment
+    :param results_dir: The directory to save the plot
+    """
     plt.figure(figsize=(12, 5))
     plt.plot(ga_fitness_history, label="GA Best Fitness (1/Cost)")
 
@@ -135,7 +160,14 @@ def plot_fitness_evaluation(ga_fitness_history, hc_fitness, num_cities, results_
 
 
 def plot_cost_comparison(ga_cost, hc_cost, num_cities, results_dir):
-    """Plots the final total distance costs side-by-side."""
+    """
+    Plots the final total distance costs side-by-side.
+
+    :param ga_cost: final cost (distance) found by the GA
+    :param hc_cost: final cost (distance) found by the HC control
+    :param num_cities: The number of cities for the experiment
+    :param results_dir: The directory to save the plot
+    """
     plt.figure(figsize=(8, 6))
     costs = [ga_cost]
     labels = ["Advanced GA"]
@@ -152,7 +184,15 @@ def plot_cost_comparison(ga_cost, hc_cost, num_cities, results_dir):
 
 
 def plot_best_route(cities, route, title, filename, results_dir):
-    """Plots the best route found by an algorithm."""
+    """
+    Plots the best route found by an algorithm
+
+    :param cities: Array of city coordinates
+    :param route: the final tour sequence
+    :param title: Title of the plot
+    :param filename: name of the file to save the plot
+    :param results_dir: The directory to save the plot
+    """
     plt.figure(figsize=(8, 8))
 
     # Ensure the route is closed for plotting (first city is repeated at the end)

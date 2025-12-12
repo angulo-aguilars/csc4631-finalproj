@@ -16,8 +16,13 @@ import numpy as np
 # TSP HELPERS
 def calculate_solution_distance_tsp(route1, route2):
     """
-    Edge-based distance between two TSP tours.
-    Returns number of differing edges.
+    Calculates the edge distance between two TSP tours, defined as the number of
+    differing edges. This metric is used to determine solution similarity for fitness sharing
+    and population diversity.
+
+    :param route1: TSP first route
+    :param route2: TSP second route
+    :return: int: The count of edges that are present in one route but not the other
     """
     n = len(route1)
 
@@ -36,6 +41,14 @@ def calculate_solution_distance_tsp(route1, route2):
     return diff_count
 
 def calculate_distance_matrix(cities):
+    """
+    Calculates the nxn distance matrix using the Euclidean distance between all pairs of city coordinates.
+    This metric is precalculated for faster fitness evaluation
+
+    :param cities: np.ndarray of shape n x 2 containing city coordinates
+    :return: np.ndarray: the symmetric distance matrix
+    """
+
     cities_array = np.array(cities)
     diff = cities_array[:, None, :] - cities_array[None, :, :]
     distance_matrix = np.linalg.norm(diff, axis=2)
@@ -47,6 +60,11 @@ def calculate_distance_matrix(cities):
 def two_opt_swap(route, i, k):
     """
     Performs a 2-opt swap by reversing the segment of the route from index i to k (inclusive).
+
+    :param route: the current route
+    :param i: start index of the segment to reverse, inclusive
+    :param k: end index of the segment to reverse, inclusive
+    :return: np.ndarray: the new route after the 2 opt swap
     """
     segment_start = route[:i]
 
