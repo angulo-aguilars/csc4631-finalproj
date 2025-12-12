@@ -1,3 +1,19 @@
+"""
+gcmain.py
+
+This file runs controlled experiments on the Graph Coloring Problem (GCP).
+It compares the performance of an advanced evolutionary Agent
+(Genetic Algorithm) against a deterministic greedy-coloring baseline algorithm.
+
+The purpose of this file:
+- Generate random graphs of varying size and edge density.
+- Evaluate the Agent’s evolutionary search performance across many trials.
+- Collect fitness histories and population diversity metrics.
+- Compute baseline greedy solutions for comparison.
+• Produce summary visualizations: mean ± std fitness, convergence plots,
+  and diversity evolution plots.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from problem import GCPProblem
@@ -5,14 +21,23 @@ from agent import Agent
 from helper_functions import generate_random_graph
 from control import greedy_coloring
 
-# -------------------------------
-# Experiment Runner for Graph Coloring using Agent
-# -------------------------------
+
 def run_graph_coloring_experiments(num_vertices_list=[30,50,70,100],
                                    edge_densities=[0.1,0.3,0.5],
                                    trials=50,
                                    num_colors=None,
                                    agent_params=None):
+    """
+    Run all graph-coloring experiments using both the
+    evolutionary Agent and a greedy heuristic baseline.
+
+    :param num_vertices_list: List of graph sizes to evaluate.
+    :param edge_densities: List of edge probabilities for random graphs.
+    :param trials: Number of random graph trials per setting.
+    :param num_colors: Optional fixed number of colors for all runs.
+    :param agent_params: Dictionary of GA hyperparameters.
+    :return: Dictionary of experiment results including fitness and histories.
+    """
     results = {}
 
     if agent_params is None:
@@ -56,10 +81,15 @@ def run_graph_coloring_experiments(num_vertices_list=[30,50,70,100],
 
     return results
 
-# -------------------------------
-# Plotting Utilities
-# -------------------------------
+
 def plot_results(results):
+    """
+    Plots bar charts, fitness convergence curves, and diversity evolution
+    for the graph coloring experiment results.
+
+    :param results: Dictionary returned from run_graph_coloring_experiments().
+    :return: None
+    """
     for key, val in results.items():
         # Bar plot for mean ± std
         plt.figure(figsize=(8,5))
@@ -96,9 +126,13 @@ def plot_results(results):
             plt.legend()
             plt.show()
 
-# -------------------------------
-# Main Entry
-# -------------------------------
+
 if __name__ == "__main__":
+    """
+    Runs the full graph-coloring experiment with default parameters
+    and generate all associated plots.
+
+    :return: None
+    """
     results = run_graph_coloring_experiments()
     plot_results(results)

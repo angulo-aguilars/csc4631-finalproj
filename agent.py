@@ -1,5 +1,17 @@
+"""
+This file implements a Genetic Algorithm (GA) agent used for solving optimization
+problems such as the Traveling Salesman Problem and the Graph Coloring Problem.
+
+The purpose of this file:
+- Provide a complete evolutionary search framework with configurable parameters.
+- Support tournament selection, fitness sharing, adaptive mutation, and
+  steady-state replacement.
+- Maintain population fitness history and population diversity metrics for
+  analysis and visualization.
+- Provide a class where different optimization problems can plug into
+  the GA without modification to the agent.
+"""
 import numpy as np
-from problem import Problem
 from typing import List, Any, Tuple, Optional
 
 class Agent:
@@ -21,7 +33,20 @@ class Agent:
                  replacement_count: int = 2,
                  rng_seed: Optional[int] = None,
                  maximize: bool = True):
+        """
+        Initializes the Genetic Algorithm agent and its configuration parameters.
 
+        :param problem: Problem instance implementing the GA interface.
+        :param population_size: Number of individuals in the population.
+        :param max_generations: Total number of evolutionary generations.
+        :param initial_mutation_rate: Starting mutation probability.
+        :param tournament_size: Number of participants in tournament selection.
+        :param sharing_radius: Distance threshold for fitness sharing.
+        :param replacement_count: Number of offspring inserted per generation.
+        :param rng_seed: Optional random seed for deterministic behavior.
+        :param maximize: Whether the objective should be maximized or minimized.
+        :return:
+        """
         self.problem = problem
         self.population_size = population_size
         self.max_generations = max_generations
@@ -44,12 +69,29 @@ class Agent:
         self.diversity_history: List[float] = []
 
     def initialize_population(self):
+        """
+        Generates a fully random initial population for the GA.
+
+        :return: None
+        """
         self.population = [
             self.problem.generate_random_solution()
             for _ in range(self.population_size)
         ]
 
     def run_evolution(self):
+        """
+        Run the full evolutionary loop including:
+        - fitness evaluation
+        - fitness sharing
+        - adaptive mutation
+        - tournament selection
+        - crossover and mutation
+        - steady-state replacement
+        - history tracking
+
+        :return: Final evolved population.
+        """
         self.initialize_population()
 
         raw_fitness = np.array([self.problem.evaluate_fitness(ind) for ind in self.population])
@@ -106,6 +148,13 @@ class Agent:
         return self.population
 
     def _fitness_sharing(self, raw_fitness):
+        """
+        Applies fitness sharing to preserve diversity by reducing the fitness
+        of individuals with many close neighbors in solution space.
+
+        :param raw_fitness: Unadjusted fitness values for each individual.
+        :return: Adjusted fitness array after sharing.
+        """
         shared_fitness = np.copy(raw_fitness)
 
         for i in range(len(self.population)):
@@ -124,6 +173,12 @@ class Agent:
         return shared_fitness
 
     def _tournament_selection(self, shared_fitness: np.ndarray):
+        """
+        Selects a parent using tournament selection based on shared fitness.
+
+        :param shared_fitness: Fitness values after fitness sharing.
+        :return: Selected individual.
+        """
         pop_n = len(self.population)
         k = min(self.tournament_size, pop_n)
         k = max(k, 1)
@@ -150,6 +205,11 @@ class Agent:
             self.population[idx] = off
 
     def get_best_solution(self) -> Tuple[Any, float]:
+        """
+        Retrieves the best solution in the current population based on raw fitness.
+
+        :return: (best_individual, best_fitness)
+        """
         raw_fitness = np.array([self.problem.evaluate_fitness(ind) for ind in self.population])
         if self.maximize:
             best_idx = int(np.argmax(raw_fitness))

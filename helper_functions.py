@@ -1,3 +1,16 @@
+"""
+helper_functions.py
+
+This file provides helper functions for both the Traveling Salesman Problem
+and the Graph Coloring Problem.
+
+Includes:
+- TSP distance metrics (edge difference, Euclidean distance matrix)
+- 2-opt neighborhood operator for route improvement
+- GCP hamming distance metric between color assignments
+- Random graph generator for GCP experiments.
+
+"""
 import numpy as np
 
 # TSP HELPERS
@@ -52,7 +65,11 @@ def two_opt_swap(route, i, k):
 
 def calculate_solution_distance_gcp(individual1, individual2):
     """
-    Hamming distance between two colorings.
+    Computes the hamming distance between two graph-coloring assignments.
+
+    :param individual1: First coloring assignment (list of color integers).
+    :param individual2: Second coloring assignment (list of color integers).
+    :return: fraction of mismatched colors.
     """
     individual1 = np.asarray(individual1)
     individual2 = np.asarray(individual2)
@@ -61,7 +78,11 @@ def calculate_solution_distance_gcp(individual1, individual2):
 
 def generate_random_graph(num_nodes, edge_probability=0.3):
     """
-    Returns an adjacency LIST (dict)
+    Generates a random graph.
+
+    :param num_nodes: Number of vertices in the graph.
+    :param edge_probability: Probability of generating each possible edge.
+    :return: Adjacency list representation as a dictionary.
     """
     graph = {i: [] for i in range(num_nodes)}
 

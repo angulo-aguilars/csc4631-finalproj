@@ -1,5 +1,20 @@
+"""
+control.py
+
+This file implements baseline control algorithms used for comparison
+against the evolutionary Agent in both the Traveling Salesman Problem (TSP)
+and the Graph Coloring Problem (GCP).
+
+The purpose of this file:
+- Provide deterministic baseline solvers for experimental comparison.
+- Supply utility functions such as tour-cost evaluation and neighborhood
+  generation for TSP local search experiments.
+- Implement a Steepest-Ascent Hill Climbing solver for the TSP using
+  the Swap neighborhood.
+- Implement a greedy graph-coloring heuristic used as the GCP baseline.
+"""
+
 import numpy as np
-import time
 from helper_functions import calculate_distance_matrix
 
 def calculate_tour_cost(route, distance_matrix):
@@ -101,10 +116,11 @@ def hill_climbing_tsp(cities, max_iterations=5000, start_route=None):
 
 def greedy_coloring(adjacency_list, num_colors):
     """
-    Greedy heuristic for baseline
-    :param adjacency_list:
-    :param num_colors:
-    :return:
+    Greedy graph coloring heuristic baseline.
+
+    :param adjacency_list: Dictionary mapping node to list of neighbors.
+    :param num_colors: Number of available colors.
+    :return: N-length numpy array of assigned colors (integers).
     """
     n = len(adjacency_list)
     solution = np.zeros(n, dtype=int)

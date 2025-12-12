@@ -1,3 +1,21 @@
+"""
+problem.py
+
+This file defines an abstract Problem class and concrete subclasses for
+TSP and Graph Coloring.
+
+Purpose:
+- TSPProblem:
+    • Permutation encoding of city routes.
+    • Fitness based on inverse tour length.
+    • 2-opt local improvement mutation.
+    • Order crossover operator.
+- GCPProblem:
+    • Integer encoding of vertex colors.
+    • Fitness based on conflict minimization
+    • Single-point crossover and vertex mutation.
+- These classes allow the Agent to evolve solutions to these problems without modification.
+"""
 from abc import ABC, abstractmethod
 from helper_functions import *
 
@@ -139,11 +157,21 @@ class TSPProblem(Problem):
         return np.sum(distances)
 
 class GCPProblem(Problem):
+    """
+    Graph Coloring Problemfor use with evolutionary algorithms.
+
+    Encodes a graph as an adjacency list and solutions as integer color assignments.
+    Fitness is based on the number of conflicting edges.
+
+    :param graph: Graph represented as a dict of adjacency lists.
+    :param num_colors: Number of colors available for coloring the vertices.
+    """
     def __init__(self, graph, num_colors):
         """
-        Graph Coloring Problem using adjacency list.
-        graph: dict or list-of-lists
-        num_colors: integer
+        Initialize the GCP problem instance.
+
+        :param graph: Dictionary or list-of-lists adjacency list representing the graph.
+        :param num_colors: Number of colors available for coloring vertices.
         """
         # Normalize adjacency list format
         if isinstance(graph, dict):
@@ -157,9 +185,23 @@ class GCPProblem(Problem):
         self.num_colors = int(num_colors)
 
     def generate_random_solution(self):
+        """
+        Generate a random color assignment for all vertices.
+
+        :return: np.ndarray of shape with integer colors.
+        """
         return np.random.randint(0, self.num_colors, self.num_vertices)
 
     def evaluate_fitness(self, individual):
+        """
+        Evaluate the fitness of a solution.
+
+        Fitness is calculated as the negative number of conflicts.
+        Higher fitness indicates fewer conflicts.
+
+        :param individual: np.ndarray representing a color assignment for each vertex.
+        :return: Negative float representing the number of conflicting edges.
+        """
         # conflicts: count each conflicting edge once
         conflicts = 0
         for u in range(self.num_vertices):
@@ -171,6 +213,13 @@ class GCPProblem(Problem):
         return -float(conflicts)
 
     def crossover(self, parent1, parent2):
+        """
+        Single-point crossover between two parent solutions.
+
+        :param parent1: np.ndarray representing first parent color assignment.
+        :param parent2: np.ndarray representing second parent color assignment.
+        :return: np.ndarray representing offspring color assignment.
+        """
         n = self.num_vertices
         if n < 2:
             return parent1.copy()
@@ -179,6 +228,12 @@ class GCPProblem(Problem):
         return child
 
     def mutate(self, individual):
+        """
+        Mutate a solution by randomly recoloring one vertex with a different color.
+
+        :param individual: np.ndarray representing the current color assignment.
+        :return: np.ndarray representing the mutated color assignment.
+        """
         mutated = np.copy(individual)
         v = np.random.randint(self.num_vertices)
         current = int(mutated[v])
@@ -188,7 +243,15 @@ class GCPProblem(Problem):
         return mutated
 
     def solution_distance(self, ind1, ind2):
-        # Hamming distance fraction in [0,1]
+        """
+        Compute the distance between two solutions.
+
+        Uses Hamming distance (fraction of vertices with different colors).
+
+        :param ind1: np.ndarray representing the first color assignment.
+        :param ind2: np.ndarray representing the second color assignment.
+        :return: Float in [0, 1] representing normalized Hamming distance.
+        """
         arr1 = np.asarray(ind1)
         arr2 = np.asarray(ind2)
         return float(np.mean(arr1 != arr2))
