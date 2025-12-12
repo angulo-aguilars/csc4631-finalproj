@@ -22,9 +22,9 @@ from helper_functions import generate_random_graph
 from control import greedy_coloring
 
 
-def run_graph_coloring_experiments(num_vertices_list=[30,50,70,100],
+def run_graph_coloring_experiments(num_vertices_list=[100],
                                    edge_densities=[0.1,0.3,0.5],
-                                   trials=50,
+                                   trials=1,
                                    num_colors=None,
                                    agent_params=None):
     """
@@ -43,7 +43,7 @@ def run_graph_coloring_experiments(num_vertices_list=[30,50,70,100],
     if agent_params is None:
         agent_params = {
             'population_size': 50,
-            'max_generations': 200,
+            'max_generations': 1000,
             'initial_mutation_rate': 0.1,
             'tournament_size': 5,
             'sharing_radius': 0.3,

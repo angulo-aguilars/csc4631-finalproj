@@ -29,15 +29,15 @@ Project Structure & File Descriptions
   1. Run Traveling Salesperson Problem Experiments:
      python tspmain.py
      This script runs the three defined TSP experiments, comparing the advanced GA against Steepest-Ascent Hill Climbing
-  3. Run Graph Coloring Problem Experiments:
+  2. Run Graph Coloring Problem Experiments:
      python gcmain.py
      This script runs the GCP experiments across varying graph sizes and edge densities, comparing the advanced GA against the Greedy Coloring baseline.
 
 Results and Output Interpretation 
 tsp_results/
 -   Content: fitness convergence plots, cost comparison bar charts, best route plots
--   Interpretation: Shows the GA's convergence to a high quality solution relative to the local opimum found by Hill Climbing and visualizes the final paths.
+-   Interpretation: Shows the GA's convergence to a high quality solution relative to the local optima found by Hill Climbing and visualizes the final paths.
 
 gcp_results/
--  Content: mean fitness bar plotos, fitness convergence plots, and diversity evolution for each configuration
+-  Content: mean fitness bar plots, fitness convergence plots, and diversity evolution for each configuration
 -  Interpretation: Compares the mean final fitness of the agent vs. Greedy baseline, and illustrates how the agent's population evolves in terms of fitness improvement and solution diversity.
